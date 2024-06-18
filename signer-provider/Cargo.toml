@@ -1,0 +1,15 @@
+[package]
+name = "signer-provider"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tonic = "0.11.0"
+prost = "0.12.6"
+anyhow = "1.0.86"
+
+
+[build-dependencies]
+tonic-build ="0.11.0"
