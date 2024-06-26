@@ -1,8 +1,9 @@
 use std::{sync::Arc, time::Instant};
 
+use anyhow::bail;
 use contract_provider::ContractProvider;
 use retriever::{retriever_server::Retriever, BlobReply, BlobRequest};
-use signer_provider::SignerProvider;
+use signer_provider::{RetrieveParam, SignerProvider};
 use task_executor::TaskExecutor;
 use tokio::sync::RwLock;
 use tonic::{Code, Request, Response, Status};
@@ -95,7 +96,7 @@ impl RetrieverService {
         })?;
 
         let mut tasks = vec![];
-        for (address, slices) in signer_slices.into_iter() {
+        for (address, indices) in signer_slices.into_iter() {
             let socket = signers
                 .get(&address)
                 .ok_or(Status::new(Code::InvalidArgument, "signer does't exist"))?
@@ -108,7 +109,26 @@ impl RetrieverService {
             let task = self
                 .executor
                 .spawn_handle(
-                    async move { signer_provider.get_slices(socket, data_root, slices).await },
+                    async move {
+                        let mut response = signer_provider
+                            .get_slices(
+                                socket,
+                                vec![RetrieveParam {
+                                    epoch: epoch,
+                                    quorum_id,
+                                    storage_root: data_root,
+                                    row_indexes: indices.clone(),
+                                }],
+                            )
+                            .await?;
+
+                        match response.pop() {
+                            Some(s) => Ok((indices, s)),
+                            None => {
+                                bail!("slice is empty")
+                            }
+                        }
+                    },
                     "request slice",
                 )
                 .ok_or(Status::new(Code::Internal, "failed to spawn request slice"))?;
@@ -118,13 +138,15 @@ impl RetrieverService {
 
         let mut slices = vec![];
         for task in tasks {
-            let slice = task
+            let (indices, s) = task
                 .await
                 .map_err(|e| Status::new(Code::Internal, format!("join error: {:?}", e)))?
                 .ok_or(Status::new(Code::Internal, "failed to run slice"))?
                 .map_err(|e| Status::new(Code::NotFound, format!("fail to get slice: {:?}", e)))?;
 
-            slices.push(slice);
+            for t in s.into_iter() {
+                slices.push(t);
+            }
         }
 
         // todo: construct original data

@@ -1,4 +1,4 @@
 log_level = "info"
 
-grpc_listen_address = "0.0.0.0:34000"
+grpc_listen_address = "0.0.0.0:34005"
 eth_rpc_endpoint = "http://15.152.71.57:8545"
