@@ -1,11 +1,20 @@
 #[macro_use]
 extern crate tracing;
 
-use anyhow::{anyhow, bail, Result};
-use signer::{signer_client::SignerClient, BatchSignRequest, SignRequest};
+use std::vec;
+
+use anyhow::Result;
+use signer::{signer_client::SignerClient, BatchRetrieveRequest, RetrieveRequest};
 
 pub mod signer {
     tonic::include_proto!("signer");
+}
+
+pub struct RetrieveParam {
+    pub epoch: u64,
+    pub quorum_id: u64,
+    pub storage_root: Vec<u8>,
+    pub row_indexes: Vec<u32>,
 }
 
 pub struct SignerProvider {}
@@ -18,27 +27,36 @@ impl SignerProvider {
     pub async fn get_slices(
         &self,
         socket: String,
-        data_root: Vec<u8>,
-        slices: Vec<usize>,
-    ) -> Result<Vec<u8>> {
-        debug!("request slice from {:?}", socket);
-        // let mut client = SignerClient::connect(socket).await?;
+        retrieve_params: Vec<RetrieveParam>,
+    ) -> Result<Vec<Vec<Vec<u8>>>> {
+        debug!("request slices from {:?}", socket);
+        let mut client = SignerClient::connect(socket).await?;
 
-        // let request = tonic::Request::new(BatchSignRequest {
-        //     requests: vec![SignRequest {
-        //         epoch: 1,
-        //         quorum_id: 1,
-        //         erasure_commitment: vec![],
-        //         storage_root: vec![],
-        //         encoded_slice: vec![],
-        //     }],
-        // });
+        let request = tonic::Request::new(BatchRetrieveRequest {
+            requests: retrieve_params
+                .into_iter()
+                .map(|p| RetrieveRequest {
+                    epoch: p.epoch,
+                    quorum_id: p.quorum_id,
+                    storage_root: p.storage_root,
+                    row_indexes: p.row_indexes,
+                })
+                .collect(),
+        });
 
-        // let response = client.batch_sign(request).await.unwrap();
+        let response = client.batch_retrieve(request).await?.into_inner();
 
-        // debug!("RESPONSE={:?}", response);
+        let mut res = vec![];
+        for slices in response.encoded_slice.into_iter() {
+            let mut s = vec![];
+            for slice in slices.encoded_slice.into_iter() {
+                s.push(slice);
+            }
 
-        Ok(vec![1, 2, 3, 4])
+            res.push(s);
+        }
+
+        Ok(res)
     }
 }
 

@@ -49,7 +49,7 @@ impl ContractProvider {
         &self,
         epoch: u64,
         quorum_id: u64,
-    ) -> Result<(HashMap<H160, SignerDetail>, HashMap<H160, Vec<usize>>)> {
+    ) -> Result<(HashMap<H160, SignerDetail>, HashMap<H160, Vec<u32>>)> {
         debug!("get signers fro epoch {}, quorum id {}", epoch, quorum_id);
 
         let quorums = self
@@ -64,12 +64,12 @@ impl ContractProvider {
 
         debug!("quorum size {}", quorums.len());
 
-        let mut signer_slices: HashMap<H160, Vec<usize>> = HashMap::new();
+        let mut signer_slices: HashMap<H160, Vec<u32>> = HashMap::new();
         quorums.into_iter().enumerate().for_each(|(i, addr)| {
             signer_slices
                 .entry(addr)
-                .and_modify(|e| e.push(i))
-                .or_insert(vec![i]);
+                .and_modify(|e| e.push(i as u32))
+                .or_insert(vec![i as u32]);
         });
 
         let signers = self
