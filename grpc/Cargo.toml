@@ -13,6 +13,8 @@ contract-provider = { workspace = true }
 signer-provider = { workspace = true }
 futures = "0.3.30"
 task_executor = { workspace = true }
+zg-da-recovery = { workspace = true }
+ethers = "2.0.14"
 
 [build-dependencies]
 tonic-build ="0.11.0"

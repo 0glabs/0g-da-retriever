@@ -12,3 +12,4 @@ grpc = { path = "./grpc" }
 contract-provider = { path = "./contract-provider" } 
 signer-provider = { path = "./signer-provider" } 
 task_executor = { git = "https://github.com/0glabs/0g-storage-node.git", rev = "ef82f643932ad0a2ec28acce47913df187afb77d" }
+zg-da-recovery = { git = "https://github.com/0glabs/0g-da-encoder.git", rev = "6d5bac1a387bbb20f707aca66b0c4cfba0ff1137", features = ["parallel"]}

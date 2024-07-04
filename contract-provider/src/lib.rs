@@ -11,6 +11,7 @@ use ethers::{
 };
 
 pub const DA_SIGNER_ADDRESS: &str = "0x0000000000000000000000000000000000001000";
+pub const MIN_REQUIRED_SLICE: usize = 1024;
 
 abigen!(DASigners, "./contract-provider/abi/IDASigners.json");
 
@@ -49,7 +50,11 @@ impl ContractProvider {
         &self,
         epoch: u64,
         quorum_id: u64,
-    ) -> Result<(HashMap<H160, SignerDetail>, HashMap<H160, Vec<u32>>)> {
+    ) -> Result<(
+        HashMap<H160, SignerDetail>,
+        HashMap<H160, Vec<u32>>,
+        HashMap<H160, Vec<u32>>,
+    )> {
         debug!("get signers fro epoch {}, quorum id {}", epoch, quorum_id);
 
         let quorums = self
@@ -64,12 +69,20 @@ impl ContractProvider {
 
         debug!("quorum size {}", quorums.len());
 
+        let mut signer_first_1024_slices: HashMap<H160, Vec<u32>> = HashMap::new();
         let mut signer_slices: HashMap<H160, Vec<u32>> = HashMap::new();
         quorums.into_iter().enumerate().for_each(|(i, addr)| {
-            signer_slices
-                .entry(addr)
-                .and_modify(|e| e.push(i as u32))
-                .or_insert(vec![i as u32]);
+            if i >= MIN_REQUIRED_SLICE {
+                signer_slices
+                    .entry(addr)
+                    .and_modify(|e| e.push(i as u32))
+                    .or_insert(vec![i as u32]);
+            } else {
+                signer_first_1024_slices
+                    .entry(addr)
+                    .and_modify(|e| e.push(i as u32))
+                    .or_insert(vec![i as u32]);
+            }
         });
 
         let signers = self
@@ -84,7 +97,7 @@ impl ContractProvider {
             .map(|t| (t.signer, t))
             .collect::<HashMap<_, _>>();
 
-        Ok((signers, signer_slices))
+        Ok((signers, signer_first_1024_slices, signer_slices))
     }
 }
 

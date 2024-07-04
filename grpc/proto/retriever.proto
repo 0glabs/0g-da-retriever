@@ -3,7 +3,7 @@ syntax = "proto3";
 package retriever;
 
 // The Retriever is a service for retrieving chunks corresponding to a blob from
-// the ZGDA operator nodes and reconstructing the original blob from the chunks.
+// the da signer nodes and reconstructing the original blob from the chunks.
 // This is a client-side library that the users are supposed to operationalize.
 //
 // Note: Users generally have two ways to retrieve a blob from ZGDA:
