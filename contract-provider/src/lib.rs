@@ -1,7 +1,12 @@
 #[macro_use]
 extern crate tracing;
 
-use std::{collections::HashMap, str::FromStr, sync::Arc, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    str::FromStr,
+    sync::Arc,
+    time::Duration,
+};
 
 use anyhow::{anyhow, bail, Result};
 use ethers::{
@@ -71,6 +76,7 @@ impl ContractProvider {
 
         let mut signer_first_1024_slices: HashMap<H160, Vec<u32>> = HashMap::new();
         let mut signer_slices: HashMap<H160, Vec<u32>> = HashMap::new();
+        let mut unique_signer = HashSet::new();
         quorums.into_iter().enumerate().for_each(|(i, addr)| {
             if i >= MIN_REQUIRED_SLICE {
                 signer_slices
@@ -83,11 +89,13 @@ impl ContractProvider {
                     .and_modify(|e| e.push(i as u32))
                     .or_insert(vec![i as u32]);
             }
+
+            unique_signer.insert(addr);
         });
 
         let signers = self
             .da_signers
-            .get_signer(signer_slices.keys().cloned().collect())
+            .get_signer(unique_signer.into_iter().collect())
             .call()
             .await?;
 
