@@ -3,7 +3,7 @@ extern crate tracing;
 
 use std::vec;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use signer::{signer_client::SignerClient, BatchRetrieveRequest, RetrieveRequest};
 
 pub mod signer {
@@ -32,7 +32,7 @@ impl SignerProvider {
         retrieve_params: Vec<RetrieveParam>,
     ) -> Result<Vec<Vec<Vec<u8>>>> {
         info!("request slices from {:?}", socket);
-        let mut client = SignerClient::connect(socket)
+        let mut client = SignerClient::connect(socket.clone())
             .await?
             .max_decoding_message_size(MESSAGE_SIZE_LIMIT)
             .max_encoding_message_size(MESSAGE_SIZE_LIMIT);
@@ -49,7 +49,12 @@ impl SignerProvider {
                 .collect(),
         });
 
-        let response = client.batch_retrieve(request).await?.into_inner();
+        let response = match client.batch_retrieve(request).await {
+            Ok(v) => v.into_inner(),
+            Err(e) => {
+                bail!("socket: {:?}, err: {:?}", socket, e);
+            }
+        };
 
         let mut res = vec![];
         for slices in response.encoded_slice.into_iter() {
