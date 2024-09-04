@@ -62,3 +62,19 @@ The following hardware specifications are recommended for running a DA retriever
     ```bash
     ./target/release/retriever --config ./run/config.toml
     ```
+
+
+## Run with Docker
+Adjust commands and parameters as required for your setup:
+
+Build the Docker image
+
+```bash
+docker build -t 0g-da-retriever .
+```
+
+Run the Docker container
+
+```bash
+docker run -v ./run:/run -p 34005:34005 0g-da-retriever:latest retriever --config /run/config.toml
+```
